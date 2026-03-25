@@ -1,4 +1,5 @@
-  Pre-Request Script:
+//GET Request #1:
+  //Pre-Request Script:
     // Variable to check for the next page URL for the Housing endpoint
     const nextUrlToFetch = pm.environment.get("housingNextUrl");
     
@@ -19,7 +20,7 @@
     }
 
 
-  Post-Response Script:
+ // Post-Response Script:
 
     // --- UNIQUE VARIABLE NAMES FOR HOUSING ---
     const PAGE_URL_VAR = "housingPageUrls";
@@ -98,9 +99,9 @@
         console.log("Housing: Pagination stopped. Moving to next request.");
     }
 
---GET Request #2:
+//GET Request #2:
 
-  Pre-Request Script:
+ // Pre-Request Script:
   // Variable to check for the next page URL for the Meal Plan endpoint
 const nextUrlToFetch = pm.environment.get("mealPlanNextUrl");
 
@@ -119,7 +120,7 @@ if (nextUrlToFetch) {
     console.log(`Pre-request (Meal Plan): Setting URL for current run to: ${pm.request.url.toString()}`);
 }
 
-Post-Response Script:
+//Post-Response Script:
 
 // --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
 const PAGE_URL_VAR = "mealPlanPageUrls";
@@ -192,9 +193,9 @@ if (pageUrls && pageUrls.length > 0) {
     console.log("Meal Plan: Pagination stopped. Moving to next request.");
 }
 
---GET Request #3:
+//GET Request #3:
 
-  Pre-Request Script:
+ // Pre-Request Script:
   // Variable to check for the next page URL for the Occupancy endpoint
 const nextUrlToFetch = pm.environment.get("occupancyNextUrl");
 
