@@ -1,1 +1,536 @@
+--Utilizing the Postman/Newman frameworks, below highlights a direct pipeline from a 3rd party vendor system to our internal servers. 
+--Numerous variables listed in the overall postman environment to be utilized in subscripts. All logic has been sanitized of personalized and/or proprietary assets. 
+
+
+
+--Collection of GET requests, each with pre-request & post-response scripts. Each sections Headers/Outer parameters may not be included in these scripts, as they are intended as a basic proof of logical concept.
+
+--GET Request #1:
+
+  Pre-Request Script:
+    // Variable to check for the next page URL for the Housing endpoint
+    const nextUrlToFetch = pm.environment.get("housingNextUrl");
+    
+    if (nextUrlToFetch) {
+        // Get the base URL from the Environment
+        let baseUrl = pm.environment.get("Site URL");
+        
+        // *** FIX: Remove trailing slash if present ***
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
+        
+        // Dynamically change the URL for the current request execution
+        // (We assume nextUrlToFetch starts with a slash, e.g., /api/...)
+        pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+        
+        console.log(`Pre-request (Housing): Setting URL for current run to: ${pm.request.url.toString()}`);
+    }
+
+
+  Post-Response Script:
+
+    // --- UNIQUE VARIABLE NAMES FOR HOUSING ---
+    const PAGE_URL_VAR = "housingPageUrls";
+    const ALL_RECORDS_VAR = "housingAllRecords";
+    const NEXT_URL_ENV_VAR = "housingNextUrl";
+    // ----------------------------------------
+    
+    const response = pm.response.json();
+    const requestName = pm.info.requestName;
+    
+    // Get/initialize the list of URLs and the final data array using unique names
+    let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+    let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+    
+    // --- 2. Initialization & Parsing ---
+    
+    // Initialize or parse 'allRecords'
+    if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+        allRecords = [];
+        console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+    } else {
+        // This handles old data from a previous Newman run
+        if (pm.environment.get(NEXT_URL_ENV_VAR) === undefined) {
+            allRecords = []; // This is the first page of the run, reset data to start fresh.
+        } else {
+            allRecords = JSON.parse(allRecords);
+        }
+    }
+    
+    // Initialize or parse 'pageUrls'
+    if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+        if (response.pages && Array.isArray(response.pages)) {
+            pageUrls = response.pages.map(page => page.url);
+            pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+            console.log(`Housing: Found ${pageUrls.length} pages total.`);
+        }
+    } else {
+        pageUrls = JSON.parse(pageUrls);
+    }
+    
+    
+    // --- 3. Data Collection ---
+    if (response.content && Array.isArray(response.content)) {
+        allRecords = allRecords.concat(response.content);
+        pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+        console.log(`Housing: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+    }
+    
+    
+    // --- 4. Loop Control ---
+    if (pageUrls && pageUrls.length > 0) {
+        pageUrls.shift(); // Remove the URL we just processed (the current page)
+    
+        if (pageUrls.length > 0) {
+            const nextRelativeUrl = pageUrls[0];
+            pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+            pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+    
+            // Rerun the current request
+            pm.execution.setNextRequest(requestName);
+            console.log(`Housing: Set up for next request: ${nextRelativeUrl}`);
+    
+        } else {
+            // Last page processed. Now jump to the next request in the collection by name.
+            pm.execution.setNextRequest("https://ExampleSite.com/api/meal-plan/assignment/"); 
+            
+            console.log(`Housing: Pagination complete. Moving to Meal Plan.`);
+    
+            // Cleanup temporary variables
+            pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+            pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+        }
+    } else {
+        // Handles the case where the initial response had no pages or an error occurred.
+        pm.execution.setNextRequest("https://ExampleSite.com/api/meal-plan/assignment/");
+        console.log("Housing: Pagination stopped. Moving to next request.");
+    }
+
+--GET Request #2:
+
+  Pre-Request Script:
+  // Variable to check for the next page URL for the Meal Plan endpoint
+const nextUrlToFetch = pm.environment.get("mealPlanNextUrl");
+
+if (nextUrlToFetch) {
+    // Get the base URL from the Environment
+    let baseUrl = pm.environment.get("Site URL");
+
+    // *** FIX: Remove trailing slash if present ***
+    if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    // Dynamically change the URL for the current request execution
+    pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+    
+    console.log(`Pre-request (Meal Plan): Setting URL for current run to: ${pm.request.url.toString()}`);
+}
+
+Post-Response Script:
+
+// --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
+const PAGE_URL_VAR = "mealPlanPageUrls";
+const ALL_RECORDS_VAR = "mealPlanAllRecords";
+const NEXT_URL_ENV_VAR = "mealPlanNextUrl";
+// ------------------------------------------
+
+const response = pm.response.json();
+const requestName = pm.info.requestName; 
+
+let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+
+// --- 2. Initialization & Parsing ---
+
+if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+    allRecords = [];
+    console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+} else {
+    allRecords = JSON.parse(allRecords);
+}
+
+if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+    if (response.pages && Array.isArray(response.pages)) {
+        pageUrls = response.pages.map(page => page.url);
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        console.log(`Meal Plan: Found ${pageUrls.length} pages total.`);
+    }
+} else {
+    pageUrls = JSON.parse(pageUrls);
+}
+
+
+// --- 3. Data Collection ---
+
+if (response.content && Array.isArray(response.content)) {
+    allRecords = allRecords.concat(response.content);
+    pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+    console.log(`Meal Plan: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+}
+
+
+// --- 4. Loop Control ---
+
+if (pageUrls && pageUrls.length > 0) {
+    pageUrls.shift(); // Remove the URL we just processed
+
+    if (pageUrls.length > 0) {
+        const nextRelativeUrl = pageUrls[0];
+
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+
+        // Rerun the current request
+        pm.execution.setNextRequest(requestName);
+        console.log(`Meal Plan: Set up for next request: ${nextRelativeUrl}`);
+
+    } else {
+        // Last page processed. Stop the loop and let the collection move to the next item.
+        // In the final 'else' block for Meal Plan:
+        pm.execution.setNextRequest("https://ExampleSite.com/api/occupancy/");
+
+        // Cleanup temporary variables
+        pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+        pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+    }
+} else {
+    // Pagination stopped/not needed.
+    pm.execution.setNextRequest("https://ExampleSite.com/api/occupancy/");
+    console.log("Meal Plan: Pagination stopped. Moving to next request.");
+}
+
+--GET Request #3:
+
+  Pre-Request Script:
+  // Variable to check for the next page URL for the Occupancy endpoint
+const nextUrlToFetch = pm.environment.get("occupancyNextUrl");
+
+if (nextUrlToFetch) {
+    // Get the base URL from the Environment
+    let baseUrl = pm.environment.get("Site URL");
+
+    // *** FIX: Remove trailing slash if present ***
+    if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    // Dynamically change the URL for the current request execution
+    pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+    
+    console.log(`Pre-request (Occupancy): Setting URL for current run to: ${pm.request.url.toString()}`);
+}
+  Post-Response Script:
+  // --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
+const PAGE_URL_VAR = "occupancyPageUrls";
+const ALL_RECORDS_VAR = "occupancyAllRecords";
+const NEXT_URL_ENV_VAR = "occupancyNextUrl";
+// ------------------------------------------
+
+const response = pm.response.json();
+const requestName = pm.info.requestName; 
+
+let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+
+// --- 2. Initialization & Parsing ---
+
+if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+    allRecords = [];
+    console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+} else {
+    allRecords = JSON.parse(allRecords);
+}
+
+if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+    if (response.pages && Array.isArray(response.pages)) {
+        pageUrls = response.pages.map(page => page.url);
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        console.log(`Occupancy: Found ${pageUrls.length} pages total.`);
+    }
+} else {
+    pageUrls = JSON.parse(pageUrls);
+}
+
+
+// --- 3. Data Collection ---
+
+if (response.content && Array.isArray(response.content)) {
+    allRecords = allRecords.concat(response.content);
+    pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+    console.log(`Occupancy: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+}
+
+
+// --- 4. Loop Control ---
+
+if (pageUrls && pageUrls.length > 0) {
+    pageUrls.shift(); // Remove the URL we just processed
+
+    if (pageUrls.length > 0) {
+        const nextRelativeUrl = pageUrls[0];
+
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+
+        // Rerun the current request
+        pm.execution.setNextRequest(requestName);
+        console.log(`Occupancy: Set up for next request: ${nextRelativeUrl}`);
+
+    } else {
+        // Last page processed. Stop the loop and let the collection move to the next item.
+        // In the final 'else' block for Meal Plan:
+        pm.execution.setNextRequest(null);
+
+        // Cleanup temporary variables
+        pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+        pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+    }
+} else {
+    // Pagination stopped/not needed.
+    pm.execution.setNextRequest(null);
+    console.log("Occupancy: Pagination stopped. Moving to next request.");
+}
+
+
+--This collection run created our session_id's JSON collection file to be utilized within our Newman framework via Windows Terminal. 
+
+--Newman framework scripts:
+  @echo off
+setlocal enabledelayedexpansion
+
+echo =======================================================
+echo Starting Automated Data Pull and Processing
+echo Started at %date% %time%
+echo =======================================================
+
+:: Change to the directory where your Newman and Python files are located
+echo Changing directory to: C:Example\Directory
+cd /d "C:Example\Directory"
+if %errorlevel% neq 0 (
+    echo ERROR: Failed to change directory. Exiting with error code 1.
+    exit /b 1
+)
+echo Directory change successful.
+echo.
+
+:: Run the Newman command to pull data and export to JSON (This essentially runs the files created via our exported GET collection previously listed above)
+echo Running Newman data pull...
+CALL newman run "ExampleCollection.postman_collectionXSESSIONCODE.json" -e "ExampleEnv1.postman_environment.json" -r cli,json --reporter-json-export json-file-reports 
+if %errorlevel% neq 0 (
+    echo ERROR: Newman run failed with return code !errorlevel!.
+    echo The Postman collection pull was unsuccessful.
+    exit /b !errorlevel!
+)
+echo Newman run completed successfully.
+echo.
+
+:: Check if the Newman output file was created
+if not exist "json-file-reports" (
+    echo ERROR: The Newman output file was not found. Exiting with error code 2.
+    exit /b 2
+)
+echo Newman output file "json-file-reports" found.
+echo.
+
+:: Run your Python script (This section then calls our Python section of logic to parse the data via Pyodbc/Pandas frameworks into our TSQL database.)
+echo Running Python script to process data...
+CALL py.exe "WorkingExample_To_SQL_Script.py"
+if %errorlevel% neq 0 (
+    echo ERROR: Python script failed with return code !errorlevel!.
+    echo The data was not loaded to the SQL database.
+    exit /b !errorlevel!
+)
+echo Python script completed successfully.
+echo.
+
+echo =======================================================
+echo Automation Finished Successfully.
+echo Finished at %date% %time%
+echo =======================================================
+pause
+endlocal
+exit /b 0
+
+
+--Continuing on calls our Python section of logic that parses the data directly into our database.
+--Note: All environment variables, as well as API key used in prior JSON file, are pulled via windows environment variables locked behind administrative safeguards.
+--All configs/Variables have an encrypted backup that is locked inside of the locally hosted machine.
+
+import pyodbc
+import json
+import datetime
+from collections import defaultdict
+
+# Database connection details
+DRIVER = EnvironmentVar1
+SERVER = EnvironmentVar2
+DATABASE = EnvironmentVar3
+UID = EnvironmentVar4
+PWD = EnvironmentVar5
+TABLE_NAME = EnvironmentVar6
+
+# Path to the Newman report file
+NEWMAN_REPORT_PATH = 'C:Example/Directory' 
+# --- End Configuration ---
+
+
+def process_student_data(executions):
+    """
+    Processes the 'executions' data, filters students by end_date, and assigns a 
+    unique room_slot_id within each (building_id, room_id) group.
+    """
+    
+    today = datetime.date.today()
+    all_valid_students = []
+    
+    # --- STEP 1: Extract and Filter Valid Student Records ---
+    print("Step 1: Extracting and filtering valid student records...")
+    for execution in executions:
+        response = execution['response']
+        response_body = None
+
+        if 'body' in response:
+            response_body = response['body']
+        elif 'stream' in response and response['stream']:
+            byte_data = response['stream']['data']
+            response_body = bytes(byte_data).decode('utf-8')
+
+        if response_body:
+            try:
+                parsed_data = json.loads(response_body)
+                student_data_list = parsed_data.get('content', [])
+
+                for student in student_data_list:
+                    end_date_str = student.get('end_date')
+                    
+                    # Ensure all required fields exist for room assignment logic
+                    required_fields = ['student_id', 'end_date', 'room_id', 'building_id']
+                    if not all(student.get(field) for field in required_fields):
+                        # print(f"Warning: Missing data in required fields for student_id: {student.get('student_id', 'N/A')}. Skipping.")
+                        continue
+                        
+                    if end_date_str:
+                        try:
+                            end_date_dt = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                            
+                            # Filter: Check if the end date is after today
+                            if end_date_dt > today:
+                                student_record = {
+                                    'session_id': student.get('session_id'),
+                                    'student_id': student.get('student_id'),
+                                    'email': student.get('email'),
+                                    'application_status': student.get('application_status'),
+                                    'start_date': student.get('start_date'),
+                                    'end_date': end_date_str,
+                                    'building_id': student.get('building_id'),
+                                    'room_id': student.get('room_id'),
+                                    'price_type_id': student.get('price_type_id'),
+                                    'room_slot_id': None 
+                                }
+                                all_valid_students.append(student_record)
+                                
+                        except ValueError:
+                            print(f"Warning: Could not parse end_date '{end_date_str}' for student_id: {student.get('student_id')}. Skipping.")
+                            
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON from response body: {e}")
+            
+    # --- STEP 2: Group by (building_id, room_id) and Assign room_slot_id ---
+    print("Step 2: Grouping by Building/Room and assigning room_slot_id...")
+    room_groups = defaultdict(list)
+    for student in all_valid_students:
+        composite_key = (student['building_id'], student['room_id'])
+        room_groups[composite_key].append(student)
+
+    final_insert_data = []
+    for composite_key, students_in_room in room_groups.items():
+        # Assign sequential slot number (1, 2, 3...) for THIS unique building/room combination
+        for i, student in enumerate(students_in_room, 1):
+            student['room_slot_id'] = str(i) # Assign the unique slot number as a string
+            final_insert_data.append(student)
+
+    print(f"Total valid student records ready for insert: {len(final_insert_data)}")
+    return final_insert_data
+
+
+try:
+    # Establish a connection to the database
+    cnxn = pyodbc.connect(f'DRIVER={DRIVER};SERVER={SERVER};DATABASE={DATABASE};UID={UID};PWD={PWD}')
+    cursor = cnxn.cursor()
+    print("Successfully connected to the database.")
+
+    # --- Table Setup ---
+    try:
+        cursor.execute(f"DROP TABLE {TABLE_NAME}")
+        cnxn.commit()
+        print(f"Existing table '{TABLE_NAME}' dropped.")
+        
+    except pyodbc.ProgrammingError:
+        pass
+    
+    cursor.execute(f"""
+        CREATE TABLE {TABLE_NAME} (
+            session_id varchar(50), 
+            id_num varchar(50), 
+            email varchar(50), 
+            application_status varchar(50),
+            start_date date, 
+            end_date date, 
+            building_id varchar(50), 
+            room_id varchar(50), 
+            price_type_id varchar(50),
+            room_slot_id varchar(50)
+        )
+    """)
+    cnxn.commit()
+    print(f"Table '{TABLE_NAME}' created.")
+    # --- End Table Setup ---
+    
+    # Load the JSON file
+    with open(NEWMAN_REPORT_PATH, 'r') as f:
+        data = json.load(f)
+
+    executions = data['run']['executions']
+
+    # --- Step 3 & 4: Process Data and Execute Bulk Insert ---
+    final_data_to_insert = process_student_data(executions)
+    
+    if not final_data_to_insert:
+        print("No valid student data to insert. Exiting script successfully.")
+    else:
+        sql_insert = f"""
+            INSERT INTO {TABLE_NAME} (
+                session_id, id_num, email, application_status,
+                start_date, end_date, building_id, room_id, price_type_id, room_slot_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        
+        insert_values = [
+            (
+                student['session_id'], student['student_id'], student['email'], 
+                student['application_status'], student['start_date'], student['end_date'], 
+                student['building_id'], student['room_id'], student['price_type_id'], 
+                student['room_slot_id']
+            )
+            for student in final_data_to_insert
+        ]
+
+        # Use executemany for efficiency
+        cursor.executemany(sql_insert, insert_values)
+        cnxn.commit()
+        print(f"Successfully inserted {len(final_data_to_insert)} records into '{TABLE_NAME}'.")
+
+except pyodbc.Error as e:
+    print(f"Database error occurred: {e}")
+except json.JSONDecodeError as e:
+    print(f"Error decoding main Newman JSON file: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+finally:
+    # Close the database connection
+    if 'cnxn' in locals() and cnxn:
+        cnxn.close()
+        print("Database connection closed.")
 
