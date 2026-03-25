@@ -1,1 +1,295 @@
+--Utilizing the Postman/Newman frameworks, below highlights a direct pipeline from a 3rd party vendor system to our internal servers. 
+--Numerous variables listed in the overall postman environment to be utilized in subscripts. All logic has been sanitized of personalized and/or proprietary assets. 
+
+
+
+--Collection of GET requests, each with pre-request & post-response scripts. Each sections Headers/Outer parameters may not be included in these scripts, as they are intended as a basic proof of logical concept.
+
+--GET Request #1:
+
+  Pre-Request Script:
+    // Variable to check for the next page URL for the Housing endpoint
+    const nextUrlToFetch = pm.environment.get("housingNextUrl");
+    
+    if (nextUrlToFetch) {
+        // Get the base URL from the Environment
+        let baseUrl = pm.environment.get("Site URL");
+        
+        // *** FIX: Remove trailing slash if present ***
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
+        
+        // Dynamically change the URL for the current request execution
+        // (We assume nextUrlToFetch starts with a slash, e.g., /api/...)
+        pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+        
+        console.log(`Pre-request (Housing): Setting URL for current run to: ${pm.request.url.toString()}`);
+    }
+
+
+  Post-Response Script:
+
+    // --- UNIQUE VARIABLE NAMES FOR HOUSING ---
+    const PAGE_URL_VAR = "housingPageUrls";
+    const ALL_RECORDS_VAR = "housingAllRecords";
+    const NEXT_URL_ENV_VAR = "housingNextUrl";
+    // ----------------------------------------
+    
+    const response = pm.response.json();
+    const requestName = pm.info.requestName;
+    
+    // Get/initialize the list of URLs and the final data array using unique names
+    let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+    let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+    
+    // --- 2. Initialization & Parsing ---
+    
+    // Initialize or parse 'allRecords'
+    if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+        allRecords = [];
+        console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+    } else {
+        // This handles old data from a previous Newman run
+        if (pm.environment.get(NEXT_URL_ENV_VAR) === undefined) {
+            allRecords = []; // This is the first page of the run, reset data to start fresh.
+        } else {
+            allRecords = JSON.parse(allRecords);
+        }
+    }
+    
+    // Initialize or parse 'pageUrls'
+    if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+        if (response.pages && Array.isArray(response.pages)) {
+            pageUrls = response.pages.map(page => page.url);
+            pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+            console.log(`Housing: Found ${pageUrls.length} pages total.`);
+        }
+    } else {
+        pageUrls = JSON.parse(pageUrls);
+    }
+    
+    
+    // --- 3. Data Collection ---
+    if (response.content && Array.isArray(response.content)) {
+        allRecords = allRecords.concat(response.content);
+        pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+        console.log(`Housing: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+    }
+    
+    
+    // --- 4. Loop Control ---
+    if (pageUrls && pageUrls.length > 0) {
+        pageUrls.shift(); // Remove the URL we just processed (the current page)
+    
+        if (pageUrls.length > 0) {
+            const nextRelativeUrl = pageUrls[0];
+            pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+            pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+    
+            // Rerun the current request
+            pm.execution.setNextRequest(requestName);
+            console.log(`Housing: Set up for next request: ${nextRelativeUrl}`);
+    
+        } else {
+            // Last page processed. Now jump to the next request in the collection by name.
+            pm.execution.setNextRequest("https://ExampleSite.com/api/meal-plan/assignment/"); 
+            
+            console.log(`Housing: Pagination complete. Moving to Meal Plan.`);
+    
+            // Cleanup temporary variables
+            pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+            pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+        }
+    } else {
+        // Handles the case where the initial response had no pages or an error occurred.
+        pm.execution.setNextRequest("https://ExampleSite.com/api/meal-plan/assignment/");
+        console.log("Housing: Pagination stopped. Moving to next request.");
+    }
+
+--GET Request #2:
+
+  Pre-Request Script:
+  // Variable to check for the next page URL for the Meal Plan endpoint
+const nextUrlToFetch = pm.environment.get("mealPlanNextUrl");
+
+if (nextUrlToFetch) {
+    // Get the base URL from the Environment
+    let baseUrl = pm.environment.get("Site URL");
+
+    // *** FIX: Remove trailing slash if present ***
+    if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    // Dynamically change the URL for the current request execution
+    pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+    
+    console.log(`Pre-request (Meal Plan): Setting URL for current run to: ${pm.request.url.toString()}`);
+}
+
+Post-Response Script:
+
+// --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
+const PAGE_URL_VAR = "mealPlanPageUrls";
+const ALL_RECORDS_VAR = "mealPlanAllRecords";
+const NEXT_URL_ENV_VAR = "mealPlanNextUrl";
+// ------------------------------------------
+
+const response = pm.response.json();
+const requestName = pm.info.requestName; 
+
+let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+
+// --- 2. Initialization & Parsing ---
+
+if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+    allRecords = [];
+    console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+} else {
+    allRecords = JSON.parse(allRecords);
+}
+
+if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+    if (response.pages && Array.isArray(response.pages)) {
+        pageUrls = response.pages.map(page => page.url);
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        console.log(`Meal Plan: Found ${pageUrls.length} pages total.`);
+    }
+} else {
+    pageUrls = JSON.parse(pageUrls);
+}
+
+
+// --- 3. Data Collection ---
+
+if (response.content && Array.isArray(response.content)) {
+    allRecords = allRecords.concat(response.content);
+    pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+    console.log(`Meal Plan: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+}
+
+
+// --- 4. Loop Control ---
+
+if (pageUrls && pageUrls.length > 0) {
+    pageUrls.shift(); // Remove the URL we just processed
+
+    if (pageUrls.length > 0) {
+        const nextRelativeUrl = pageUrls[0];
+
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+
+        // Rerun the current request
+        pm.execution.setNextRequest(requestName);
+        console.log(`Meal Plan: Set up for next request: ${nextRelativeUrl}`);
+
+    } else {
+        // Last page processed. Stop the loop and let the collection move to the next item.
+        // In the final 'else' block for Meal Plan:
+        pm.execution.setNextRequest("https://ExampleSite.com/api/occupancy/");
+
+        // Cleanup temporary variables
+        pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+        pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+    }
+} else {
+    // Pagination stopped/not needed.
+    pm.execution.setNextRequest("https://ExampleSite.com/api/occupancy/");
+    console.log("Meal Plan: Pagination stopped. Moving to next request.");
+}
+
+--GET Request #3:
+
+  Pre-Request Script:
+  // Variable to check for the next page URL for the Occupancy endpoint
+const nextUrlToFetch = pm.environment.get("occupancyNextUrl");
+
+if (nextUrlToFetch) {
+    // Get the base URL from the Environment
+    let baseUrl = pm.environment.get("Site URL");
+
+    // *** FIX: Remove trailing slash if present ***
+    if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    // Dynamically change the URL for the current request execution
+    pm.request.url = `${baseUrl}${nextUrlToFetch}`;
+    
+    console.log(`Pre-request (Occupancy): Setting URL for current run to: ${pm.request.url.toString()}`);
+}
+  Post-Response Script:
+  // --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
+const PAGE_URL_VAR = "occupancyPageUrls";
+const ALL_RECORDS_VAR = "occupancyAllRecords";
+const NEXT_URL_ENV_VAR = "occupancyNextUrl";
+// ------------------------------------------
+
+const response = pm.response.json();
+const requestName = pm.info.requestName; 
+
+let pageUrls = pm.collectionVariables.get(PAGE_URL_VAR);
+let allRecords = pm.collectionVariables.get(ALL_RECORDS_VAR);
+
+// --- 2. Initialization & Parsing ---
+
+if (!allRecords || allRecords === '[]' || allRecords === 'null') {
+    allRecords = [];
+    console.log(`Initializing ${ALL_RECORDS_VAR} array.`);
+} else {
+    allRecords = JSON.parse(allRecords);
+}
+
+if (!pageUrls || pageUrls === '[]' || pageUrls === 'null') {
+    if (response.pages && Array.isArray(response.pages)) {
+        pageUrls = response.pages.map(page => page.url);
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        console.log(`Occupancy: Found ${pageUrls.length} pages total.`);
+    }
+} else {
+    pageUrls = JSON.parse(pageUrls);
+}
+
+
+// --- 3. Data Collection ---
+
+if (response.content && Array.isArray(response.content)) {
+    allRecords = allRecords.concat(response.content);
+    pm.collectionVariables.set(ALL_RECORDS_VAR, JSON.stringify(allRecords));
+    console.log(`Occupancy: Collected ${response.content.length} records. Total collected: ${allRecords.length}`);
+}
+
+
+// --- 4. Loop Control ---
+
+if (pageUrls && pageUrls.length > 0) {
+    pageUrls.shift(); // Remove the URL we just processed
+
+    if (pageUrls.length > 0) {
+        const nextRelativeUrl = pageUrls[0];
+
+        pm.collectionVariables.set(PAGE_URL_VAR, JSON.stringify(pageUrls));
+        pm.environment.set(NEXT_URL_ENV_VAR, nextRelativeUrl);
+
+        // Rerun the current request
+        pm.execution.setNextRequest(requestName);
+        console.log(`Occupancy: Set up for next request: ${nextRelativeUrl}`);
+
+    } else {
+        // Last page processed. Stop the loop and let the collection move to the next item.
+        // In the final 'else' block for Meal Plan:
+        pm.execution.setNextRequest(null);
+
+        // Cleanup temporary variables
+        pm.collectionVariables.set(PAGE_URL_VAR, "[]");
+        pm.environment.set(NEXT_URL_ENV_VAR, ""); 
+    }
+} else {
+    // Pagination stopped/not needed.
+    pm.execution.setNextRequest(null);
+    console.log("Occupancy: Pagination stopped. Moving to next request.");
+}
 
