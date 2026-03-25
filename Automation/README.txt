@@ -8,11 +8,15 @@ from a 3rd party vendor system and loads it directly into our internal servers.
 
 The project handles complex API pagination, orchestrates tasks via batch scripting, and utilizes Python to transform the data before executing a bulk insert into a TSQL database.
 Note: All logic in this repository has been carefully sanitized of personalized and proprietary assets for demonstration purposes.
-AI Usage: AI was periodically used for commentation, formatting, and help with exception logic.
+AI Usage: AI was periodically used for code commenting/documentation, formatting, and help with exception logic.
 
-Tech StackAPI Interactions: Postman / Newman Automation: 
-Windows Command Line (Batch Scripting) Data Transformation: Python (JSON, Datetime, Collections) 
-Database: SQL Server (TSQL) via pyodbc Pipeline Architecture
+Tech Stack API Interactions: 
+  Postman / Newman Automation: 
+    Windows Command Line (Batch Scripting) 
+  Data Transformation: 
+    Python (JSON, Datetime, Collections) 
+  Database: 
+    SQL Server (TSQL) via pyodbc Pipeline Architecture
 
 Scripts are initially triggered via Windows Task Scheduler.
 
@@ -32,5 +36,5 @@ Data Enrichment: Valid students are grouped by a composite key of building_id an
 The script iterates through these groups to assign a unique, sequential room_slot_id to each student.
 
   Database Load: Using pyodbc, the script establishes a connection to the database, resets the staging table, and utilizes executemany for a highly efficient bulk insert of the transformed records.
-Security & ConfigurationSecurity was a top priority when designing this pipeline. All configuration parameters, database credentials, and API keys are strictly separated from the codebase. 
-They are securely pulled via Windows environment variables that are locked behind administrative safeguards.
+Security & Configuration: Security was a top priority when designing this pipeline. All configuration parameters, database credentials, and API keys are strictly separated from the codebase. 
+They are securely pulled via Windows environment variables that are locked behind administrative safeguards with encrypted backups located on hosting machine & cloud storage.
