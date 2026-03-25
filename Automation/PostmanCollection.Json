@@ -1,12 +1,3 @@
---Utilizing the Postman/Newman frameworks, below highlights a direct pipeline from a 3rd party vendor system to our internal servers. 
---Numerous variables listed in the overall postman environment to be utilized in subscripts. All logic has been sanitized of personalized and/or proprietary assets. 
-
-
-
---Collection of GET requests, each with pre-request & post-response scripts. Each sections Headers/Outer parameters may not be included in these scripts, as they are intended as a basic proof of logical concept.
-
---GET Request #1:
-
   Pre-Request Script:
     // Variable to check for the next page URL for the Housing endpoint
     const nextUrlToFetch = pm.environment.get("housingNextUrl");
