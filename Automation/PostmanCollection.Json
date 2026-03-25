@@ -193,7 +193,7 @@ if (pageUrls && pageUrls.length > 0) {
     console.log("Meal Plan: Pagination stopped. Moving to next request.");
 }
 
-//GET Request #3:
+// GET Request #3:
 
  // Pre-Request Script:
   // Variable to check for the next page URL for the Occupancy endpoint
@@ -213,7 +213,7 @@ if (nextUrlToFetch) {
     
     console.log(`Pre-request (Occupancy): Setting URL for current run to: ${pm.request.url.toString()}`);
 }
-  //Post-Response Script:
+  // Post-Response Script:
   // --- UNIQUE VARIABLE NAMES FOR MEAL PLAN ---
 const PAGE_URL_VAR = "occupancyPageUrls";
 const ALL_RECORDS_VAR = "occupancyAllRecords";
