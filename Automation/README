@@ -1,28 +1,36 @@
-3rd-Party Vendor ETL PipelineOverviewThis repository contains a robust ETL (Extract, Transform, Load) pipeline that automates the retrieval of data 
+Project Overview:
+  Identified Problem: Our institution was lacking a way to retrieve data from our 3rd party vendor software for student life session information.
+  Solution: Implementation of a comprehensive ETL Pipeline to create a structured and reliable dataflow. 
+
+3rd-Party Vendor ETL Pipeline Overview
+This repository contains a robust ETL (Extract, Transform, Load) pipeline that automates the retrieval of data 
 from a 3rd party vendor system and loads it directly into our internal servers. 
 
 The project handles complex API pagination, orchestrates tasks via batch scripting, and utilizes Python to transform the data before executing a bulk insert into a TSQL database.
 Note: All logic in this repository has been carefully sanitized of personalized and proprietary assets for demonstration purposes.
-AI Usage: AI was periodically used for commentation, formatting, and exception logic.
+AI Usage: AI was periodically used for commentation, formatting, and help with exception logic.
 
 Tech StackAPI Interactions: Postman / Newman Automation: 
 Windows Command Line (Batch Scripting) Data Transformation: Python (JSON, Datetime, Collections) 
 Database: SQL Server (TSQL) via pyodbc Pipeline Architecture
-1.Data Extraction (Postman & Newman)The extraction phase utilizes a collection of GET requests to pull data from vendor endpoints, specifically targeting Housing, Meal Plan, and Occupancy data.
+
+Scripts are initially triggered via Windows Task Scheduler.
+
+  1.Data Extraction (Postman & Newman)The extraction phase utilizes a collection of GET requests to pull data from vendor endpoints, specifically targeting Housing, Meal Plan, and Occupancy data.
 Dynamic Pagination: Pre-request and post-response scripts dynamically check for "next page" URLs. 
 The collection safely loops through endpoints, concatenating records into array variables, until pagination is complete.
 Session Management: The output is configured to generate a comprehensive JSON report of the execution, capturing all response data for the next phase.
 
-2. Orchestration & Automation (Windows Batch)A batch script acts as the automated trigger for the pipeline.
+  2. Orchestration & Automation (Windows Batch)A batch script acts as the automated trigger for the pipeline.
 Newman CLI Integration: The script calls Newman to execute the Postman collection and export a .json file report.
 Error Handling: It validates the execution at each step. If the Newman run fails or the output file is missing, the script halts execution and throws an error code to prevent faulty data from reaching the database.
 Handoff: Upon successful API extraction, the batch script seamlessly triggers the Python transformation logic.
 
-3. Transformation & Load (Python)The final stage parses the Newman JSON report, applies business logic, and pushes the data to the local database.
+  3. Transformation & Load (Python)The final stage parses the Newman JSON report, applies business logic, and pushes the data to the local database.
 Data Filtering: The script parses the raw JSON and filters out invalid student records, actively dropping records where the student's end_date has already passed.
 Data Enrichment: Valid students are grouped by a composite key of building_id and room_id. 
 The script iterates through these groups to assign a unique, sequential room_slot_id to each student.
 
-Database Load: Using pyodbc, the script establishes a connection to the database, resets the staging table, and utilizes executemany for a highly efficient bulk insert of the transformed records.
+  Database Load: Using pyodbc, the script establishes a connection to the database, resets the staging table, and utilizes executemany for a highly efficient bulk insert of the transformed records.
 Security & ConfigurationSecurity was a top priority when designing this pipeline. All configuration parameters, database credentials, and API keys are strictly separated from the codebase. 
 They are securely pulled via Windows environment variables that are locked behind administrative safeguards.
