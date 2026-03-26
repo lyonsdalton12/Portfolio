@@ -1,5 +1,6 @@
 Project Overview:
-  Identified Problem: Our institution was lacking a way to retrieve data from our 3rd party vendor software for student life session information.
+  Identified Problem: Our institution was lacking a way to retrieve data from our 3rd party vendor software for student life session information. 
+  Manual synchronization was highlighting human error as well as creating a major inefficiency/unnecessarily heavy burden on multiple departments.
   Solution: Implementation of a comprehensive ETL Pipeline to create a structured and reliable dataflow. 
 
 3rd-Party Vendor ETL Pipeline Overview

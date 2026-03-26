@@ -1,0 +1,80 @@
+Title: IT_TEMP_PLAY_RUNBOOK
+Owner: IT Department
+Last Reviewed: 03-26-2026
+Status: Active
+Sensitivity Level: Public / Internal General
+Scope: 
+To create a Template to be used as a “Playbook” with a series of "Runbooks" inside of our IT Department. The Playbook portion of this document should be a high-level in-depth explanation of the overall process or goal. Please make sure to link/add the Runbooks that provide the relevant specific technical steps to achieve a desired outcome or to troubleshoot any issues at the bottom of this playbook. (CTRL + CLICK HERE FOR QUICK COPY/PASTE OF PLAYBOOK TEMPLATE) 
+
+
+Example PLAY/RUNBOOK Template:
+-	PLAYBOOK Title: Student ID Creation
+Created By: Dalton Lyons
+Created Date: 03-19-2026
+Last Updated By: Dalton Lyons
+Last Updated Date: 03-19-2026
+Subject Matter Experts: Dalton Lyons
+Sensitivity Level: Level 1: Public / Internal General
+Systems in use: Photo System Example1, Internal Example 1, Example Host Machine
+Dependencies: Generic Website Example1, External Vendor Website Example1, Specific Tasks/Services Dependent on this process.
+Goal/Scope of this Playbook: 
+	The purpose of this runbook is to provide the technical steps necessary to process photos from our internal team into our Vendors cloud based system and our other internal systems.
+
+    (The links below are used within Microsoft word for quick jumping between runbooks located further in this document. As our team is fairly small the decision to keep playbooks and runbooks in the same template was made for simplicity.)
+Step 1: 
+•	-Internal Photo Teams Cloud Storage – External Vendors Cloud Storage Steps:
+o	– Link to Runbook concerning this process: Link to Internal Photo Teams Cloud Storage – External Vendors Cloud Storage Runbook
+o	- Any other considerations:
+Step 2: 
+•	-Internal Photo Teams Cloud Storage – Other Internal Systems
+o	– Link to Runbook concerning this process: Link to Internal Photo Teams Cloud Storage – Other Internal Systems Runbook
+o	- Any other considerations:
+
+
+
+
+
+
+
+Anything below with -- -- commenting scheme was added purely to this document for external explanation of this template.
+
+Quick copy/paste of playbook/runbook template:
+
+-	PLAYBOOK Title: 
+o	RUNBOOK:
+o	RUNBOOK:
+
+Created By: 
+Created Date: 
+Last Updated By: 
+Last Updated Date: 
+Subject Matter Experts: 
+Sensitivity Level: 
+Systems in use: 
+Dependencies: 
+Goal/Scope of this Playbook: 
+Step 1: --link to runbook#1-- / Additional Comments for consideration
+
+
+Step 2: --link to runbook#2-- / Additional Comments for consideration
+
+--Where runbook#1 link would land-- RUNBOOK#1 TITLE:
+Created By: 
+Created Date: 
+Last Updated By: 
+Last Updated Date: 
+	Step 1: 
+•	-
+Step 2: 
+•	-
+
+
+--Where runbook#2 link would land-- RUNBOOK#2 TITLE:
+Created By: 
+Created Date: 
+Last Updated By: 
+Last Updated Date: 
+	Step 1: 
+•	-
+Step 2: 
+•	-

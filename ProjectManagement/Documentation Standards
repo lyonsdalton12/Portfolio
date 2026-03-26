@@ -1,0 +1,48 @@
+Title: IT_SD_STANDARD_DOC
+Owner: IT Department
+Last Reviewed: 03-26-2026
+Status: Active
+Sensitivity Level: Public / Internal General
+Scope: 
+The purpose of this document is to create a standard header/template for documentation pertaining to creation of new documentation inside of our IT department. This template would be used for all general documentation on policies, standards, etc. Within the scope of the IT Department.
+
+Naming Conventions Format: [Dept]_[Category]_[Short Name]
+Example File Names: 
+•	IT_MAINT_ServerPatching
+•	IT_PRO_StudentAccounts
+•	IT_FIX_ARAgingUnbalanced
+•	IT_AUDIT_InstitutionHardware
+•	IT_SD_SENSITIVITY_LEVELS
+
+PRO (Provisioning/Creation)
+MAINT (Updating/Maintenance)
+FIX (Troubleshooting)
+AUDIT (Compliance checking)
+SD (Standard Documentation)
+
+
+
+
+Quick copy paste: 
+
+Document ID: 
+Title: [Dept]_[Category]_[Short Name] –Keep this format consistent
+Owner: 
+Last Reviewed: 
+Status: 
+Sensitivity Level: 
+Scope: 
+
+
+
+
+Example below:
+
+Document ID:  STD_DOC_01
+Title: Data Sensitivity & Handling Standard
+Owner: IT Department
+Last Reviewed: 03-26-2026
+Status: [Active / Draft / Superseded]
+Sensitivity Level: Level 1: Public / Internal General, Level 2: Internal IT (Standard), Level 3: Confidential / Team Restricted, Level 4: Highly Restricted / "Secret"
+Scope: Applies to all IT staff and adjacent parties.
+
