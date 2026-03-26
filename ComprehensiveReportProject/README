@@ -1,0 +1,42 @@
+
+**Project: Comprehensive Student Data Reporting (IPEDS/ACT)**
+Domain: Higher Education Data Architecture / Government Compliance Reporting  
+Language: T-SQL 
+
+**Overview:**
+This folder contains a highly optimized, all-in-one SQL script designed to aggregate, transform, and output comprehensive student lifecycle data for mandated government reporting (IPEDS / ACT requirements). 
+
+**Problem:**
+Government compliance standards required the compilation of 7 years worth of comprehensive student data. This massive data pull spanned across multiple entities/systems and departments, including:
+* **Financial Aid & Award Disbursements**
+* **Degree History & Academic Standing**
+* **Biographical & Demographic Data**
+* **Institutional Acceptance Status & Enrollment**
+* **Standardized Testing Scores (SAT/ACT)**
+
+Retrieving this data manually or through fragmented queries was unsustainable, highly prone to human error, and could not meet the strict regulatory deadlines.
+
+**The Solution**
+I engineered an all-in-one cross-database query to accurately pull, map, and mask this information in a single execution. Despite the massive dataset and complex joins across multiple institutional databases, the script is optimized to achieve sub-10 second run times.
+
+Because government reporting criteria frequently change, the script is designed with modular variable declarations and Common Table Expressions (CTEs), allowing future developers to easily adjust logic for yearly pulls. 
+
+**Key Highlights & Skills Demonstrated**
+
+* **High-Pressure Execution:** This script was developed and deployed under a very strict time crunch to meet non-negotiable compliance deadlines. 
+* **Cross-Departmental Coordination:** Successfully collaborated with the Registrar's Office, Financial Aid, and Administration to gather requirements, establish data definitions, and refine the query logic through iterative feedback loops.
+* **Complex Data Transformation:** Extensively utilized CASE statements to map internal, proprietary database codes to standardized IPEDS reporting integers (e.g., mapping internal enrollment statuses, demographic codes, and financial dependency statuses).
+* **Performance Optimization:** Leveraged multiple CTEs (AggregatedAwards, BaseData, CalculatedVars) to pre-aggregate and filter million-row financial aid tables down to a single token per student *before* joining to the main query, resulting in lightning-fast execution times.
+* **Data Security & Privacy:** Integrated dynamic data masking directly into the script to ensure all Personally Identifiable Information (PII), such as Student IDs, was sanitized before the data ever hit the final output CSV.
+
+**Technical Architecture**
+
+1. **Configuration & Temp Tables:** The script begins by declaring dynamic variables (Target Year, Tuition Costs, Term Codes) and temporary tables to filter out non-applicable fee codes.
+2. **Pre-Aggregation (CTEs):** * Pre-calculates need vs. non-need financial aid.
+   * Determines full-time vs. part-time status based on aggregated tuition hours.
+   * Calculates remaining financial need based on AGI, Pell Grants, and Institutional Funds.
+3. **Cross-Database Joins:** Connects the core student candidacy table to the Biographical Master, Admissions data, and Financial Aid databases using carefully structured LEFT OUTER JOINs to preserve the primary cohort.
+4. **Data Mapping:** Outputs a final, clean dataset formatted exactly to IPEDS layout specifications.
+
+---
+*Note: The SQL script provided in this repository has been thoroughly sanitized. All proprietary institutional database names, specific financial figures, and PII have been replaced with generic placeholders to protect organizational data.*

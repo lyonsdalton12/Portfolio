@@ -1,41 +1,50 @@
-Project Overview:
-  Identified Problem: Our institution was lacking a way to retrieve data from our 3rd party vendor software for student life session information. 
-  Manual synchronization was highlighting human error as well as creating a major inefficiency/unnecessarily heavy burden on multiple departments.
-  Solution: Implementation of a comprehensive ETL Pipeline to create a structured and reliable dataflow. 
+**Project:** 3rd-Party Vendor ETL Pipeline
+**Domain:** Data Engineering, API Integration, Automation  
+**Languages/Tools:** Python, T-SQL, Windows Batch, Postman/Newman, JavaScript
 
-3rd-Party Vendor ETL Pipeline Overview
-This repository contains a robust ETL (Extract, Transform, Load) pipeline that automates the retrieval of data 
-from a 3rd party vendor system and loads it directly into our internal servers. 
+**Overview**
+This repository contains a robust, end-to-end ETL (Extract, Transform, Load) pipeline that automates the retrieval of student life session data from a third-party vendor system, transforms it according to internal business logic, and loads it securely into our institution's internal servers. 
 
-The project handles complex API pagination, orchestrates tasks via batch scripting, and utilizes Python to transform the data before executing a bulk insert into a TSQL database.
-Note: All logic in this repository has been carefully sanitized of personalized and proprietary assets for demonstration purposes.
-AI Usage: AI was periodically used for code commenting/documentation, formatting, and help with exception logic.
+**The Problem**
+Our institution lacked a native integration to retrieve critical student life session information (Housing, Meal Plans, and Occupancy) from a newly adopted 3rd-party vendor. As a result, staff across multiple departments were forced to rely on manual data synchronization. This created a massive administrative bottleneck, introduced high rates of human error, and resulted in unreliable data for reporting and operations.
 
-Tech Stack API Interactions: 
-  Postman / Newman Automation: 
-    Windows Command Line (Batch Scripting) 
-  Data Transformation: 
-    Python (JSON, Datetime, Collections) 
-  Database: 
-    SQL Server (TSQL) via pyodbc Pipeline Architecture
+**The Solution**
+I engineered a fully automated ETL pipeline to create a structured, virtually zero-touch data flow. Triggered automatically via Windows Task Scheduler, the pipeline handles complex API pagination, orchestrates data extraction, sanitizes the payload, and performs bulk database inserts—completely eliminating the need for manual oversight.
 
-Scripts are initially triggered via Windows Task Scheduler.
+**Tech Stack**
+* **Extraction:** Postman / Newman CLI, JavaScript (Dynamic API Pagination)
+* **Orchestration:** Windows Command Line (Batch Scripting)
+* **Transformation:** Python (JSON, Datetime, Collections)
+* **Loading:** SQL Server (T-SQL) via pyodbc
 
-  1.Data Extraction (Postman & Newman)The extraction phase utilizes a collection of GET requests to pull data from vendor endpoints, specifically targeting Housing, Meal Plan, and Occupancy data.
-Dynamic Pagination: Pre-request and post-response scripts dynamically check for "next page" URLs. 
-The collection safely loops through endpoints, concatenating records into array variables, until pagination is complete.
-Session Management: The output is configured to generate a comprehensive JSON report of the execution, capturing all response data for the next phase.
+---
 
-  2. Orchestration & Automation (Windows Batch)A batch script acts as the automated trigger for the pipeline.
-Newman CLI Integration: The script calls Newman to execute the Postman collection and export a .json file report.
-Error Handling: It validates the execution at each step. If the Newman run fails or the output file is missing, the script halts execution and throws an error code to prevent faulty data from reaching the database.
-Handoff: Upon successful API extraction, the batch script seamlessly triggers the Python transformation logic.
+**Pipeline Architecture**
 
-  3. Transformation & Load (Python)The final stage parses the Newman JSON report, applies business logic, and pushes the data to the local database.
-Data Filtering: The script parses the raw JSON and filters out invalid student records, actively dropping records where the student's end_date has already passed.
-Data Enrichment: Valid students are grouped by a composite key of building_id and room_id. 
-The script iterates through these groups to assign a unique, sequential room_slot_id to each student.
+1. **Data Extraction** (Postman & Newman)
+The extraction phase utilizes a collection of authenticated GET requests to pull data from specific vendor endpoints.
+* **Dynamic Pagination:** Engineered JavaScript Pre-request and Post-response scripts to dynamically evaluate API responses for "next page" URLs. The collection safely loops through endpoints, concatenating records into array variables until all data is retrieved.
+* **Session Management:** The final output is configured to generate a comprehensive JSON report of the Newman execution, safely capturing all requested data for the transformation phase.
 
-  Database Load: Using pyodbc, the script establishes a connection to the database, resets the staging table, and utilizes executemany for a highly efficient bulk insert of the transformed records.
-Security & Configuration: Security was a top priority when designing this pipeline. All configuration parameters, database credentials, and API keys are strictly separated from the codebase. 
-They are securely pulled via Windows environment variables that are locked behind administrative safeguards with encrypted backups located on hosting machine & cloud storage.
+2. **Orchestration & Automation** (Windows Batch)
+A centralized batch script (run_pipeline.bat) acts as the automated controller for the workflow.
+* **CLI Integration:** The script programmatically executes the Postman collection via the Newman CLI.
+* **Strict Error Handling:** Execution is validated at every step. If the API pull fails or the JSON output file is missing, the script halts immediately and throws a designated error code to prevent malformed data from reaching the database.
+* **Seamless Handoff:** Upon successful data extraction, the batch script triggers the Python environment to begin transformation.
+
+3. **Transformation & Load** (Python)
+The final stage (load_to_sql.py) parses the Newman JSON report, applies necessary business logic, and pushes the data to the local SQL environment.
+* **Data Filtering:** Actively parses the raw JSON array and sanitizes the dataset by dropping invalid or expired student records (e.g., evaluating if a student's end_date has already passed).
+* **Data Enrichment:** Valid students are logically grouped using a composite key (building_id + room_id). The script iterates through these groups to assign a unique, sequential room_slot_id to each student for database normalization.
+* **High-Performance Database Load:** Establishes a secure connection via pyodbc, resets the temporary staging tables, and utilizes executemany for a highly efficient bulk insert of the enriched records.
+
+---
+
+**Security & Configuration**
+Security was a top priority when designing this architecture. 
+* **Zero Hardcoded Credentials:** All configuration parameters, database credentials, and API keys are strictly separated from the codebase.
+* **Environment Variables:** Secrets are dynamically pulled at runtime via OS-level environment variables, which are locked behind administrative safeguards.
+* **Encrypted Backups:** Configuration states are backed up using encryption on both the local hosting machine and secure cloud storage.
+
+---
+*Note: All logic in this repository has been carefully sanitized of personalized and proprietary assets for demonstration purposes. AI assistance was utilized periodically for code documentation, formatting standardization, and exception logic refinement.*
