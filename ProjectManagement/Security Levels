@@ -7,7 +7,7 @@ Scope:
 The purpose of this document is to set a sensitivity level standard to ensure that proprietary &/OR personally identifiable information is protected while maintaining that generalized information is still reasonably accessible. 
 
 
-🟢 Level 1: Public / Internal General
+**Level 1: Public / Internal General**
 Definition: General operational procedures that contain no proprietary configuration data or security-sensitive info.
 •	Access: All employees (IT and non-IT).
 •	Examples: * How to request a new hardware peripheral.
@@ -15,7 +15,7 @@ o	Standard software installation guides for end-users.
 o	Basic troubleshooting for office Wi-Fi.
 •	Data Content: Public-facing links, screenshots of standard UI, and general "how-to" text.
 
-🟡 Level 2: Internal IT (Standard)
+**Level 2: Internal IT (Standard)**
 Definition: The "bread and butter" of our department. Contains internal technical workflows that assume a level of IT knowledge.
 •	Access: All members of the IT Department.
 •	Examples: Standard VM creation steps.
@@ -23,7 +23,7 @@ o	Patch management schedules and workflows.
 o	Student account creation/maintenance standards.
 •	Data Content: Internal server names, VLAN IDs, and non-privileged service account names. No passwords or credentials.
 
-🟠 Level 3: Confidential / Team Restricted
+**Level 3: Confidential / Team Restricted**
 Definition: Procedures for high-value systems or those governed by compliance (HIPAA, SOC2, PCI). Access is restricted to the specific team members managing the asset.
 •	Access: Specific to only our internal IT department.
 •	Examples: Critical maintenance information.
@@ -32,7 +32,7 @@ o	Accessing the HR payroll system backend.
 o	Student Billing information/systems.
 •	Data Content: IP addresses of production machines, and specific security hardening steps.
 
-🔴 Level 4: Highly Restricted / "Secret"
+**Level 4: Highly Restricted / "Secret"**
 Definition: Procedures involving the "keys to the kingdom." These runbooks often contain instructions on how to access root-level credentials or bypass standard security in emergencies.
 •	Access: Owners of specific processes.
 •	Examples: Firewall Panel Credentials.
