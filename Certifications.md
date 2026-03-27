@@ -15,9 +15,9 @@ This document contains the certifications for the portfolio. Each certification 
 
 | https://coursera.org/share/832951ed33a35979d4583679f1c90f80 |
 
-| **Connect and Protect: Networks and Network Security** | Google/Coursera 
+| **Connect and Protect: Networks and Network Security** | Google/Coursera | Jan, 2026 
 
-| Jan, 2026 | https://coursera.org/share/dc8348aec2cf1fcacec83a070f098a33 |
+| https://coursera.org/share/dc8348aec2cf1fcacec83a070f098a33 |
 
 | **Play It Safe: Manage Security Risks** | [Google/Coursera | Jan, 2026 
 
