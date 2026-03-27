@@ -44,20 +44,35 @@ Our institution lacked a native integration to retrieve critical student life se
 
 ## Repository Structure
 
-'''text
+
 Portfolio-main
+
  ┣  Automation Projects       # Contains the fully featured ETL Pipeline project
+ 
  ┃ ┣ PostmanCollection.js     # JavaScript logic for API pagination
+ 
  ┃ ┣ run_pipeline.bat         # Batch script orchestrating the workflow
+ 
  ┃ ┣ load_to_sql.py           # Python data transformation and SQL loading script
+ 
  ┃ ┗ README.md                # Detailed documentation for the ETL project
+ 
  ┣  ProjectManagement         # Highlights documentation/templates for implementing departmental standards
+ 
  ┃ ┣ Documentation Standards  # Standards for naming conventions, provisioning documents
+ 
  ┃ ┣ Play_Runbook Template    # Playbook/Runbook combo template
+ 
  ┃ ┣ README.md                # Detailed documentation concerning problem/solutions
+ 
  ┃ ┣ SQLTemplate.sql          # Comprehensive SQL template indicating minimal required information
+ 
  ┃ ┣ Security Levels          # Multi-level security scheme highlighting data integrity/security
+ 
  ┣ ComprehensiveReportProject # Contains a large time sensitive project led by myself & coordinated cross departmentally
+ 
  ┃ ┣ IPEDSACTREPORT.sql       # Massive & Dynamic SQL script for report requirements
+ 
  ┃ ┣ README.md                # Detailed documentation for goals/challenges of this project
+ 
  ┗  README.md                 # You are here!
