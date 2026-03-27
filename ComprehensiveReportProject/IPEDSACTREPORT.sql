@@ -6,7 +6,7 @@
  * PURPOSE: To provide a comprehensive report for the IPEDS ACT Reporting requirements.
  * SAFEGUARDS:  Student ID Data must be masked for submission.
  * ADDITONAL COMMENTS: Not ALL students will be covered in this script, we need to go over everything with our administrative to ensure accuracy.
-   Ensure to change variable declarations as needed. Multiple versions of this script should be available inside of the Shared Google Drive under [Department] > [User Folder] > [Reports Folder].
+   Ensure to change variable declarations as needed. Multiple versions of this script should be available inside of the [Shared Entity] under [Department] > [User Folder] > [Reports Folder].
  */
 
 /* =============================================
@@ -17,7 +17,7 @@
 DECLARE @Year_cde VARCHAR(10) = '2024';
 DECLARE @Begin_date VARCHAR(10) = '2024-07-01';
 DECLARE @End_date VARCHAR(10) = '2025-06-30';
-DECLARE @Div_cde VARCHAR(10) = 'ExDiv1';
+DECLARE @GenericDivisionCode VARCHAR(10) = 'ExDiv1';
 --DECLARE @ST_TUIT_AMT varchar(10) = [Tuition_Amount];--DOUBLE CHECK PLACEHOLDER AMOUNT PER YEAR
 
 /*
@@ -57,19 +57,19 @@ INSERT INTO @CAND_TYPE (CAND_VAL) VALUES ('ExCand1'),('ExCand1');
 WITH AggregatedAwards AS (
     --Pre-aggregate the awards table down to ONE row per student year token
       SELECT 
-        stu_award_year_token,
+        GenericStudentFinToken,
         SUM(CASE WHEN REPLACE(fund_name, ' ', '') = 'EXA3' THEN ISNULL(disbursed_amt,0) ELSE 0 END) AS total_va_tuition,
         SUM(CASE WHEN REPLACE(fund_name, ' ', '') = 'EXA4' THEN ISNULL(disbursed_amt,0) ELSE 0 END) AS total_fws_tuition,
         SUM(CASE WHEN REPLACE(fund_name, ' ', '') = 'EXA5' THEN ISNULL(disbursed_amt,0) ELSE 0 END) AS total_pell_amt,
 		SUM(CASE WHEN REPLACE(fund_name, ' ', '') = 'EXA1' THEN ISNULL(disbursed_amt,0) ELSE 0 END) AS total_job_need_tuition,
 		SUM(CASE WHEN REPLACE(fund_name, ' ', '') = 'EXA2' THEN ISNULL(disbursed_amt,0) ELSE 0 END) AS total_job_non_need_tuition
     FROM [finaid_db]dbo.ExampleStudentAwardTable1
-    GROUP BY stu_award_year_token
+    GROUP BY GenericStudentFinToken
 ),
 
 ExampleStudentFulltimeTable1 AS (
     SELECT 
-        id_num,
+        GenericIdNum,
         ISNULL(SUM(TUITION_HRS), 0) AS total_hrs,
         -- If they have 6 or more hours, flag as 'F', otherwise 'P'
         CASE 
@@ -77,35 +77,35 @@ ExampleStudentFulltimeTable1 AS (
             ELSE 0
         END AS ExampleStudentFulltimeTable1
     FROM ExampleStudentHistoryTable1
-    WHERE trm_cde IN (SELECT term FROM @Temp_Term_Cdes) 
+    WHERE GenericTermCodeVar IN (SELECT term FROM @Temp_Term_Cdes) 
       AND CREDIT_TYPE_CDE = 'ExCt1' 
-      AND YR_CDE = @Year_cde
-    GROUP BY id_num
+      AND GenericYearCodeVar = @Year_cde
+    GROUP BY GenericIdNum
 ),
 
 ExampleStudentEnrollTable1 AS (
     SELECT 
-        id_num,
+        GenericIdNum,
         MAX(CASE 
-            WHEN ISNULL(stage,0) = 'Ex1' THEN 1 --For normal enrolled students
-			WHEN ISNULL(stage,0) >= 'Ex2' then 2 --For those who were accepted at minimum.
+            WHEN ISNULL(GenericStageCodeVar,0) = 'Ex1' THEN 1 --For normal enrolled students
+			WHEN ISNULL(GenericStageCodeVar,0) >= 'Ex2' then 2 --For those who were accepted at minimum.
             ELSE 0 --those who were never accepted/enrolled or are outside the scope of this enrollment period.
         END) AS ExampleStudentEnrollTable1
     FROM ExampleStudentCandidacy1
-    WHERE trm_cde IN 
+    WHERE GenericTermCodeVar IN 
 	--('ExTerm1','ExTerm2','ExTerm3')
 	(SELECT term FROM @Temp_Term_Cdes) 
-      AND DIV_CDE =  @Div_cde 
-      AND YR_CDE =  @Year_cde
+      AND GenericDivisionCode =  @GenericDivisionCode 
+      AND GenericYearCodeVar =  @Year_cde
 
-    GROUP BY id_num
+    GROUP BY GenericIdNum
 ),
 
 BaseData AS (
     SELECT 
-        aa.stu_award_year_token,
+        aa.GenericStudentFinToken,
         v.original_need,
-        b.tot_inst_funds_disb - total_job_non_need_tuition - total_job_need_tuition as tot_inst_funds_disb,
+        b.GenericTotalinst_funds_disb - total_job_non_need_tuition - total_job_need_tuition as GenericTotalinst_funds_disb,
 		total_fws_tuition,
 		total_va_tuition,
 		SFP.AGI AS S,
@@ -124,24 +124,24 @@ BaseData AS (
         aa.total_pell_amt,
 		isnull(sfs.data_valid,0) as data_valid
     FROM AggregatedAwards aa
-    LEFT OUTER JOIN [finaid_db].dbo.dbo.ExampleView1 v ON v.stu_award_year_token = aa.stu_award_year_token
-    LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinSumTable1 b ON aa.stu_award_year_token = b.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParTable2 SFP ON SFP.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParOtherTable2 SFPO ON SFPO.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParTable1 SFPF ON SFPF.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParOtherTable1 SFPOF ON SFPOF.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_FTIM SFSF ON SFSF.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_SPOUSE_FTIM SFSSF ON SFSSF.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1 SFS ON SFS.stu_award_year_token = aa.stu_award_year_token
-	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_SPOUSE SFSS ON SFSS.stu_award_year_token = aa.stu_award_year_token
+    LEFT OUTER JOIN [finaid_db].dbo.dbo.ExampleView1 v ON v.GenericStudentFinToken = aa.GenericStudentFinToken
+    LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinSumTable1 b ON aa.GenericStudentFinToken = b.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParTable2 SFP ON SFP.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParOtherTable2 SFPO ON SFPO.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParTable1 SFPF ON SFPF.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.dbo.ExampleStudentFinParOtherTable1 SFPOF ON SFPOF.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_FTIM SFSF ON SFSF.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_SPOUSE_FTIM SFSSF ON SFSSF.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1 SFS ON SFS.GenericStudentFinToken = aa.GenericStudentFinToken
+	LEFT OUTER JOIN [finaid_db].DBO.ExampleStudentFinTable1_SPOUSE SFSS ON SFSS.GenericStudentFinToken = aa.GenericStudentFinToken
 ),
 
 CalculatedVars AS (
     SELECT 
-        stu_award_year_token,
+        GenericStudentFinToken,
         original_need,
         total_pell_amt,
-        tot_inst_funds_disb,
+        GenericTotalinst_funds_disb,
         total_va_tuition,
 		total_fws_tuition,
 		STUAGI,
@@ -167,13 +167,13 @@ CalculatedVars AS (
 SELECT 
 --/////////////////////TEMPORARY VALUES FOR TESTING COMMENT OUT BEFORE PULLING FOR FINAL SUBMISSION/////////////////////////--
 
-	-- a.id_num,
+	-- a.GenericIdNum,
 	-- nm.first_name,
 	-- nm.last_name,
 
 --/////////////////////TEMPORARY VALUES FOR TESTING COMMENT OUT BEFORE PULLING FOR FINAL SUBMISSION/////////////////////////--
 
-	reverse(convert(char(6),a.id_num-900)) AS stu_id, 
+	reverse(convert(char(6),a.GenericIdNum-900)) AS stu_id, 
 	--Might need to change data mask per year to avoid upload flags of students being marked in multiple years.
 	--2025 = 100
 	--2024 = 900
@@ -201,7 +201,7 @@ SELECT
 	CASE 
 		WHEN ISNULL(es.ExampleStudentEnrollTable1,0) in ('1','2') then 1 
 		else 0 
-	end as adm_stat, --All accepted or higher stage students (Official offer letter) 1 else 0
+	end as adm_stat, --All accepted or higher GenericStageCodeVar students (Official offer letter) 1 else 0
 
 --***************************************************************************************--
 
@@ -264,21 +264,21 @@ SELECT
 	ISNULL(
 		CASE 
 			WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-            WHEN pfi.tot_grants_disb > 0 or 
-			pfi.tot_private_funds_disb > 0 or 
-			pfi.tot_private_grants_disb > 0 or 
-			pfi.tot_loans_disb > 0 or 
-			pfi.tot_state_funds_disb > 0 or 
-			pfi.tot_inst_funds_disb > 0 or
-			pfi.tot_other_disb > 0
+            WHEN pfi.GenericTotalgrants_disb > 0 or 
+			pfi.GenericTotalprivate_funds_disb > 0 or 
+			pfi.GenericTotalprivate_grants_disb > 0 or 
+			pfi.GenericTotalloans_disb > 0 or 
+			pfi.GenericTotalstate_funds_disb > 0 or 
+			pfi.GenericTotalinst_funds_disb > 0 or
+			pfi.GenericTotalother_disb > 0
 			THEN 1
-            WHEN pfi.tot_grants_disb <= 0 and 
-			pfi.tot_private_funds_disb <= 0 and
-			pfi.tot_private_grants_disb <= 0 and 
-			pfi.tot_loans_disb <= 0 and 
-			pfi.tot_state_funds_disb <= 0 and 
-			pfi.tot_inst_funds_disb <= 0 and
-			pfi.tot_other_disb <= 0
+            WHEN pfi.GenericTotalgrants_disb <= 0 and 
+			pfi.GenericTotalprivate_funds_disb <= 0 and
+			pfi.GenericTotalprivate_grants_disb <= 0 and 
+			pfi.GenericTotalloans_disb <= 0 and 
+			pfi.GenericTotalstate_funds_disb <= 0 and 
+			pfi.GenericTotalinst_funds_disb <= 0 and
+			pfi.GenericTotalother_disb <= 0
 			THEN 0
             ELSE -1
 		END,-1) as fa_stat,
@@ -299,12 +299,12 @@ SELECT
     ISNULL(
 		CASE 
 			WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-			WHEN ISNULL(pd.either_parent_attend_college,'-1') = 1 then 0
-			WHEN ISNULL(pd.either_parent_attend_college,'-1') = 2 then 0
-			WHEN ISNULL(pd.either_parent_attend_college,'-1') = 3 then 1
-			WHEN ISNULL(pd.either_parent_attend_college,'-1') = 4 then -1
-			WHEN ISNULL(pd.par_1_highest_grade_level,'4') = 3 or ISNULL(pd.par_2_highest_grade_level,'4') = 3 THEN 1
-			WHEN ISNULL(pd.par_1_highest_grade_level,'4') = 4 AND ISNULL(pd.par_2_highest_grade_level,'4') = 4 THEN -1
+			WHEN ISNULL(pd.GenericParentCollegeVar,'-1') = 1 then 0
+			WHEN ISNULL(pd.GenericParentCollegeVar,'-1') = 2 then 0
+			WHEN ISNULL(pd.GenericParentCollegeVar,'-1') = 3 then 1
+			WHEN ISNULL(pd.GenericParentCollegeVar,'-1') = 4 then -1
+			WHEN ISNULL(pd.GenericFatherCollegeVar,'4') = 3 or ISNULL(pd.GenericMotherCollegeVar,'4') = 3 THEN 1
+			WHEN ISNULL(pd.GenericFatherCollegeVar,'4') = 4 AND ISNULL(pd.GenericMotherCollegeVar,'4') = 4 THEN -1
 			ELSE 0
 		END, -1) AS parent_ed,
 
@@ -340,7 +340,7 @@ SELECT
 
 	ISNULL(CASE 
 		WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-        WHEN nv.tot_inst_funds_disb - nv.total_job_non_need_tuition <= remaining_need THEN nv.tot_inst_funds_disb
+        WHEN nv.GenericTotalinst_funds_disb - nv.total_job_non_need_tuition <= remaining_need THEN nv.GenericTotalinst_funds_disb
         ELSE remaining_need
 	END,0) as needaid_award,
 
@@ -348,7 +348,7 @@ SELECT
 
 	ISNULL(CASE 
 		WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-        WHEN nv.tot_inst_funds_disb - nv.total_job_need_tuition <= remaining_need THEN nv.tot_inst_funds_disb 
+        WHEN nv.GenericTotalinst_funds_disb - nv.total_job_need_tuition <= remaining_need THEN nv.GenericTotalinst_funds_disb 
         ELSE remaining_need
 	END,0) as needaid_recd,
 
@@ -356,7 +356,7 @@ SELECT
 
 	CASE 
 		WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-		WHEN nv.tot_inst_funds_disb - nv.Total_job_non_need_tuition > remaining_need  THEN nv.tot_inst_funds_disb - remaining_need
+		WHEN nv.GenericTotalinst_funds_disb - nv.Total_job_non_need_tuition > remaining_need  THEN nv.GenericTotalinst_funds_disb - remaining_need
         ELSE 0
 	END as notneedaid_award,
 
@@ -364,7 +364,7 @@ SELECT
 
 	CASE 
 		WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-		WHEN nv.tot_inst_funds_disb - nv.Total_job_non_need_tuition > remaining_need  THEN nv.tot_inst_funds_disb - remaining_need
+		WHEN nv.GenericTotalinst_funds_disb - nv.Total_job_non_need_tuition > remaining_need  THEN nv.GenericTotalinst_funds_disb - remaining_need
         ELSE 0
 	END as notneedaid_recd,
 
@@ -373,16 +373,16 @@ SELECT
 	ISNULL(
 		CASE
 			WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-			WHEN pfi.tot_fed_funds_disb + pfi.tot_state_funds_disb - pfi.tot_ffelp_disb - nv.total_fws_tuition - nv.total_va_tuition  < 0 THEN 0
-			else pfi.tot_fed_funds_disb + pfi.tot_state_funds_disb - pfi.tot_ffelp_disb - nv.total_fws_tuition - nv.total_va_tuition
+			WHEN pfi.GenericTotalfed_funds_disb + pfi.GenericTotalstate_funds_disb - pfi.GenericTotalffelp_disb - nv.total_fws_tuition - nv.total_va_tuition  < 0 THEN 0
+			else pfi.GenericTotalfed_funds_disb + pfi.GenericTotalstate_funds_disb - pfi.GenericTotalffelp_disb - nv.total_fws_tuition - nv.total_va_tuition
 		END,-3) as lclstatfedaid_award,
 
 --***************************************************************************************--
 	ISNULL(
 		CASE
 			WHEN ISNULL(fps.ExampleStudentFulltimeTable1, 0) != 1 OR ISNULL(es.ExampleStudentEnrollTable1, 0) != 1 THEN -3
-			WHEN pfi.tot_fed_funds_disb + pfi.tot_state_funds_disb - pfi.tot_ffelp_disb - nv.total_fws_tuition - nv.total_va_tuition  < 0 THEN 0
-			else pfi.tot_fed_funds_disb + pfi.tot_state_funds_disb - pfi.tot_ffelp_disb - nv.total_fws_tuition - nv.total_va_tuition
+			WHEN pfi.GenericTotalfed_funds_disb + pfi.GenericTotalstate_funds_disb - pfi.GenericTotalffelp_disb - nv.total_fws_tuition - nv.total_va_tuition  < 0 THEN 0
+			else pfi.GenericTotalfed_funds_disb + pfi.GenericTotalstate_funds_disb - pfi.GenericTotalffelp_disb - nv.total_fws_tuition - nv.total_va_tuition
 		END,-3) as lclstatfedaid_recd,
 
 --***************************************************************************************--
@@ -392,9 +392,9 @@ SELECT
 			-- Rule 1: Non-Degree Seeking
 			WHEN ISNULL(h.NON_DEGREE_SEEKING,0) != 'N' THEN -3
 			-- Rule 2: Graduated Month
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) = 'G' and h.DIV_CDE = 'UG' THEN ISNULL(DATEPART(month, h.DTE_DEGR_CONFERRED), -3)
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) = 'G' and h.GenericDivisionCode = 'UG' THEN ISNULL(DATEPART(month, h.DTE_DEGR_CONFERRED), -3)
 			-- Rule 3: Enrolled FT but hasn't graduated yet
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) != 'G' and h.DIV_CDE = 'UG' THEN -3
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) != 'G' and h.GenericDivisionCode = 'UG' THEN -3
 			ELSE 0 
 		END, -1) AS comp_date_m,
 
@@ -403,9 +403,9 @@ SELECT
 			-- Rule 1: Non-Degree Seeking
 			WHEN ISNULL(h.NON_DEGREE_SEEKING,0) != 'N' THEN -3
 			-- Rule 2: Graduated Day
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) = 'G' and h.DIV_CDE = 'UG' THEN ISNULL(DATEPART(day, h.DTE_DEGR_CONFERRED), -3)
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) = 'G' and h.GenericDivisionCode = 'UG' THEN ISNULL(DATEPART(day, h.DTE_DEGR_CONFERRED), -3)
 			-- Rule 3: Enrolled FT but hasn't graduated yet
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) != 'G' and h.DIV_CDE = 'UG' THEN -3
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) != 'G' and h.GenericDivisionCode = 'UG' THEN -3
 			ELSE 0 
 		END, -1) AS comp_date_d,
 
@@ -414,9 +414,9 @@ SELECT
 			-- Rule 1: Non-Degree Seeking
 			WHEN ISNULL(h.NON_DEGREE_SEEKING,0) != 'N' THEN -3
 			-- Rule 2: Graduated Year
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) = 'G' and h.DIV_CDE = 'UG' THEN ISNULL(DATEPART(year, h.DTE_DEGR_CONFERRED),-3)
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) = 'G' and h.GenericDivisionCode = 'UG' THEN ISNULL(DATEPART(year, h.DTE_DEGR_CONFERRED),-3)
 			-- Rule 3: Enrolled FT but hasn't graduated yet
-			WHEN ISNULL(LTRIM(RTRIM(h.exit_reason)),0) != 'G' and h.DIV_CDE = 'UG' THEN -3
+			WHEN ISNULL(LTRIM(RTRIM(h.GenericExitReasonVar)),0) != 'G' and h.GenericDivisionCode = 'UG' THEN -3
 			ELSE -1
 		END, -1) AS comp_date_y,
 
@@ -424,19 +424,19 @@ SELECT
 		CASE 
 			WHEN ISNULL(h.NON_DEGREE_SEEKING,0) != 'N' then -3 
 			WHEN B.DECEASED = 'Y' THEN -5
-			WHEN ISNULL(h.exit_reason,0) != 'G' then -3
-			WHEN ISNULL(h.exit_reason,0) = 'G' and h.DEGREE_YR <= h.EXPECT_GRAD_YR THEN 1 
-			WHEN ISNULL(h.exit_reason,0) = 'G' and h.DEGREE_YR > h.EXPECT_GRAD_YR THEN 0
+			WHEN ISNULL(h.GenericExitReasonVar,0) != 'G' then -3
+			WHEN ISNULL(h.GenericExitReasonVar,0) = 'G' and h.GenericDegreeYearVar <= h.GenericExpectedGradYearVar THEN 1 
+			WHEN ISNULL(h.GenericExitReasonVar,0) = 'G' and h.GenericDegreeYearVar > h.GenericExpectedGradYearVar THEN 0
 		 END,-1) AS comp_100,
 
 		 ISNULL(
 		CASE 
 			WHEN ISNULL(h.NON_DEGREE_SEEKING,0) != 'N' then -3 
 			WHEN B.DECEASED = 'Y' THEN -5
-			WHEN ISNULL(h.exit_reason,0) != 'G' then -3
-			WHEN ISNULL(h.exit_reason,0) = 'G' and h.DEGREE_YR = h.EXPECT_GRAD_YR THEN 1 
-			WHEN ISNULL(h.exit_reason,0) = 'G' and h.DEGREE_YR - 2 <= h.EXPECT_GRAD_YR then 1
-			WHEN ISNULL(h.exit_reason,0) = 'G' and h.DEGREE_YR - 2 > h.EXPECT_GRAD_YR THEN 0
+			WHEN ISNULL(h.GenericExitReasonVar,0) != 'G' then -3
+			WHEN ISNULL(h.GenericExitReasonVar,0) = 'G' and h.GenericDegreeYearVar = h.GenericExpectedGradYearVar THEN 1 
+			WHEN ISNULL(h.GenericExitReasonVar,0) = 'G' and h.GenericDegreeYearVar - 2 <= h.GenericExpectedGradYearVar then 1
+			WHEN ISNULL(h.GenericExitReasonVar,0) = 'G' and h.GenericDegreeYearVar - 2 > h.GenericExpectedGradYearVar THEN 0
 		 END,-1) AS comp_150
 		 
 -- SECTION 2. DESCRIPTION: From/Join statements, cross database connections here. Ensure keys/connection is still up-to-date.
@@ -445,22 +445,22 @@ FROM ExampleStudentCandidacy1 a
 
 --/////////////////////////////////TEMPORARY JOIN////////////////////////////////////////--
 
-LEFT OUTER JOIN ExampleStudentNameTable1 nm ON nm.ID_NUM = a.ID_NUM
+LEFT OUTER JOIN ExampleStudentNameTable1 nm ON nm.GenericIdNum = a.GenericIdNum
 
 --/////////////////////////////////TEMPORARY JOIN////////////////////////////////////////--
 
 --Joining for 'sex' field
 
 LEFT OUTER JOIN (
-    SELECT id_num, MAX(gender) as gender, MAX(deceased) as deceased
+    SELECT GenericIdNum, MAX(gender) as gender, MAX(deceased) as deceased
     FROM ExampleBiographTable1
-    GROUP BY id_num
-) b ON a.id_num = b.id_num
+    GROUP BY GenericIdNum
+) b ON a.GenericIdNum = b.GenericIdNum
 
 --Joining for 'race_eth' field
 
 LEFT OUTER JOIN (
-    SELECT id_num, 
+    SELECT GenericIdNum, 
 		MAX(CASE WHEN ipeds_report_value = 9 THEN 8 
         WHEN ipeds_report_value = 8 THEN 7  
         WHEN ipeds_report_value = 7 THEN 6
@@ -472,122 +472,122 @@ LEFT OUTER JOIN (
         WHEN ipeds_report_value = 1 THEN 1
         ELSE -1 END) AS 'race_eth'
     FROM ExampleStudentEthnicTable1
-    GROUP BY id_num
-) er ON a.id_num = er.id_num
+    GROUP BY GenericIdNum
+) er ON a.GenericIdNum = er.GenericIdNum
 
 --Joining for ACT/SAT information
 
 LEFT OUTER JOIN (
-    SELECT id_num, 
+    SELECT GenericIdNum, 
         MAX(sat_math) as sat_math, MAX(sat_reading) as sat_reading, MAX(sat_comp) as sat_comp,
         MAX(act_math) as act_math, MAX(act_english) as act_english, MAX(act_comp) as act_comp
     FROM [admissions_data_table]
-    GROUP BY id_num
-) ra ON a.id_num = ra.id_num
+    GROUP BY GenericIdNum
+) ra ON a.GenericIdNum = ra.GenericIdNum
 
 --PFAIDS BASE JOIN (Core for multiple dependent joins)
 
-LEFT OUTER JOIN [finaid_db]dbo.ExampleFinStudentTable1 s ON s.alternate_id = a.id_num
-LEFT OUTER JOIN [finaid_db]dbo.ExampleFinYearStudentTable1 ay ON ay.student_token = s.student_token AND ay.award_year_token = @Year_cde
+LEFT OUTER JOIN [finaid_db]dbo.ExampleFinStudentTable1 s ON s.alternate_id = a.GenericIdNum
+LEFT OUTER JOIN [finaid_db]dbo.ExampleFinYearStudentTable1 ay ON ay.student_token = s.student_token AND ay.GenericYearAwardToken = @Year_cde
 
 --Joining for parent ed and Pell status via ranked transaction
 
 LEFT OUTER JOIN (
     SELECT 
-        stu_award_year_token,
-        either_parent_attend_college,
+        GenericStudentFinToken,
+        GenericParentCollegeVar,
         ISNULL(fed_pell_grant_eligibility,'0') AS fed_pell_grant_eligibility,
-        par_1_highest_grade_level,
-        par_2_highest_grade_level,
-        ROW_NUMBER() OVER (PARTITION BY stu_award_year_token ORDER BY transaction_number DESC) as rn
+        GenericFatherCollegeVar,
+        GenericMotherCollegeVar,
+        ROW_NUMBER() OVER (PARTITION BY GenericStudentFinToken ORDER BY transaction_number DESC) as rn
     FROM [finaid_db].dbo.ExampleStudentFinTable1
-) pd ON pd.stu_award_year_token = ay.stu_award_year_token AND pd.rn = 1
+) pd ON pd.GenericStudentFinToken = ay.GenericStudentFinToken AND pd.rn = 1
 
 --Joining for First Year GPA
 
 LEFT OUTER JOIN (
-	SELECT ts.id_num, ts.CAREER_GPA,
-		ROW_NUMBER() OVER (PARTITION BY ts.id_num ORDER BY ts.career_hrs_attempt DESC) AS rn
+	SELECT ts.GenericIdNum, ts.CAREER_GPA,
+		ROW_NUMBER() OVER (PARTITION BY ts.GenericIdNum ORDER BY ts.career_hrs_attempt DESC) AS rn
 	FROM ExampleStudentDivTable1 ts
-	WHERE yr_cde = @Year_cde and DIV_CDE = @Div_cde
-) sts ON sts.id_num = a.ID_NUM AND sts.rn = 1
+	WHERE GenericYearCodeVar = @Year_cde and GenericDivisionCode = @GenericDivisionCode
+) sts ON sts.GenericIdNum = a.GenericIdNum AND sts.rn = 1
 
 --Joining for Tuition Fees
 
 LEFT OUTER JOIN (
-	SELECT id_num, SUM(trans_amt) as tuit_fees 
+	SELECT GenericIdNum, SUM(trans_amt) as tuit_fees 
 	FROM ExampleStudentTransactionTable1 
     WHERE SOURCE_CDE = 'CG' AND TRANS_DTE BETWEEN @Begin_date AND @End_date 
 	  AND CHG_FEE_CDE NOT IN (SELECT Chg_fee FROM @Charge_Fee_Cdes)
-	  AND REPLACE(acct_cde, ' ', '') = '[Account_Code]' 
-	GROUP BY id_num
-) th on th.id_num = a.id_num
+	  AND REPLACE(GenericAccountCodeVar, ' ', '') = '[Account_Code]' 
+	GROUP BY GenericIdNum
+) th on th.GenericIdNum = a.GenericIdNum
 
 --Joining for Remedial Courses
 
 LEFT OUTER JOIN (
-	SELECT ID_NUM, 1 as has_remedial 
+	SELECT GenericIdNum, 1 as has_remedial 
 	FROM ExampleStudentHistoryTable1 
-	WHERE (REPLACE(crs_cde,' ','') LIKE 'EXMP1%' OR REPLACE(crs_cde,' ','') LIKE 'EXMP2%')
-      AND yr_cde = @Year_cde AND trm_cde in (select Term from @Temp_Term_Cdes)
-    GROUP BY ID_NUM
-) sc ON sc.ID_NUM = a.id_num
+	WHERE (REPLACE(GenericCourseCodeVar,' ','') LIKE 'EXMP1%' OR REPLACE(GenericCourseCodeVar,' ','') LIKE 'EXMP2%')
+      AND GenericYearCodeVar = @Year_cde AND GenericTermCodeVar in (select Term from @Temp_Term_Cdes)
+    GROUP BY GenericIdNum
+) sc ON sc.GenericIdNum = a.GenericIdNum
 
 --Joining PFAids Disbursed Totals
 
-LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinSumTable1 pfi ON pfi.stu_award_year_token = ay.stu_award_year_token
+LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinSumTable1 pfi ON pfi.GenericStudentFinToken = ay.GenericStudentFinToken
 
 --Joining  Pfaids par table for family income
-LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinTable1 pfp on pfp.stu_award_year_token = ay.stu_award_year_token
+LEFT OUTER JOIN [finaid_db].dbo.ExampleStudentFinTable1 pfp on pfp.GenericStudentFinToken = ay.GenericStudentFinToken
 
 --Joining for Need/Non-Need CTE Results
 
-LEFT OUTER JOIN CalculatedVars NV ON NV.stu_award_year_token = ay.stu_award_year_token
+LEFT OUTER JOIN CalculatedVars NV ON NV.GenericStudentFinToken = ay.GenericStudentFinToken
 
 --Joining for Degree History
 
 LEFT OUTER JOIN (
-    SELECT id_num, isnull(non_degree_seeking,0) as non_degree_seeking, isnull(exit_reason,0) as exit_reason, isnull(cur_degree,0) as cur_degree,
-	isnull(expect_grad_yr,0) as expect_grad_yr, isnull(degree_yr,0) as degree_yr, isnull(dte_degr_conferred,0) as dte_degr_conferred, div_cde
+    SELECT GenericIdNum, isnull(non_degree_seeking,0) as non_degree_seeking, isnull(GenericExitReasonVar,0) as GenericExitReasonVar, isnull(cur_degree,0) as cur_degree,
+	isnull(GenericExpectedGradYearVar,0) as GenericExpectedGradYearVar, isnull(GenericDegreeYearVar,0) as GenericDegreeYearVar, isnull(dte_degr_conferred,0) as dte_degr_conferred, GenericDivisionCode
     FROM (
         SELECT 
-            id_num, 
+            GenericIdNum, 
             non_degree_seeking,
-            exit_reason,
+            GenericExitReasonVar,
             cur_degree,
-            expect_grad_yr,
-            degree_yr,
+            GenericExpectedGradYearVar,
+            GenericDegreeYearVar,
             dte_degr_conferred,
-			div_cde,
+			GenericDivisionCode,
             ROW_NUMBER() OVER (
-                PARTITION BY id_num 
-                ORDER BY expect_grad_yr DESC
+                PARTITION BY GenericIdNum 
+                ORDER BY GenericExpectedGradYearVar DESC
             ) as row_num
         FROM ExampleStudentDegreeTable1
-		WHERE DIV_CDE = @Div_cde
+		WHERE GenericDivisionCode = @GenericDivisionCode
     ) ranked_degrees
     WHERE row_num = 1
-) AS h ON h.id_num = a.ID_NUM
+) AS h ON h.GenericIdNum = a.GenericIdNum
 
 
 --Joining CTE For full time status
-left outer join ExampleStudentFulltimeTable1 fps on fps.ID_NUM = a.ID_NUM
+left outer join ExampleStudentFulltimeTable1 fps on fps.GenericIdNum = a.GenericIdNum
 
 --Joining CTE For enrollment status
-LEFT OUTER JOIN ExampleStudentEnrollTable1 es on es.ID_NUM = a.ID_NUM
+LEFT OUTER JOIN ExampleStudentEnrollTable1 es on es.GenericIdNum = a.GenericIdNum
 
 -- SECTION 3. DESCRIPTION: Where statement, keep this as light as possible as we are working with numerous joins, can cause unintended issues if edited. 
 
 
 
-WHERE a.DIV_CDE = @Div_cde 
-  AND a.yr_cde = @Year_cde
-  AND a.trm_cde in (select Term from @Temp_Term_Cdes)
-  AND a.stage > '22'
-  AND a.candidacy_type IN (SELECT CAND_VAL FROM @CAND_TYPE)
-  AND a.CUR_CANDIDACY = 'Y'
-  and a.id_num != '[Test_ID]'
+WHERE a.GenericDivisionCode = @GenericDivisionCode 
+  AND a.GenericYearCodeVar = @Year_cde
+  AND a.GenericTermCodeVar in (select Term from @Temp_Term_Cdes)
+  AND a.GenericStageCodeVar > '22'
+  AND a.GenericCandidacyVar IN (SELECT CAND_VAL FROM @CAND_TYPE)
+  AND a.GenericCurrentCandidacyVar = 'Y'
+  and a.GenericIdNum != '[Test_ID]'
 
 	
  
-  ORDER BY a.ID_NUM
+  ORDER BY a.GenericIdNum
